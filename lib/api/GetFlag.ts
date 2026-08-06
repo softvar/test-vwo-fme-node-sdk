@@ -835,14 +835,12 @@ export class FlagApi {
       }
     }
 
-    deferredObject.resolve(
-      new Flag(
-        isEnabled,
-        context.getSessionId(),
-        context.getUuid(),
-        new VariationModel().modelFromDictionary(experimentVariationToReturn ?? rolloutVariationToReturn),
-      ),
-    );
+    const variationToReturn = experimentVariationToReturn ?? rolloutVariationToReturn;
+    const variationModel = variationToReturn
+      ? new VariationModel().modelFromDictionary(variationToReturn)
+      : new VariationModel();
+
+    deferredObject.resolve(new Flag(isEnabled, context.getSessionId(), context.getUuid(), variationModel));
 
     if (!serviceContainer.getSettingsService().isGatewayServiceProvided && batchPayload.length > 0) {
       if (!isDevModeForUser) {

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.61.0] - 2026-07-30
+
+### Fixed
+
+- **Impact Analysis flag OFF events**: Fixed bug where impact analysis events were not sent when flag evaluation resulted in OFF/disabled state. The issue was `modelFromDictionary(null)` throwing a TypeError when no variation exists, preventing batch event dispatch. Now properly handles null by creating empty `VariationModel()`.
+
 ## [1.60.0] - 2026-06-29
 
 ### Added
