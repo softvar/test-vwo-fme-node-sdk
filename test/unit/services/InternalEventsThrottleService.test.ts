@@ -158,12 +158,15 @@ describe('InternalEventsRuntimeUtil', () => {
   });
 
   it('should return true for keys in the sampled debug set', () => {
-    expect(isSampledDebugErrorTemplateKey('EXECUTION_FAILED')).toBe(true);
-    expect(isSampledDebugErrorTemplateKey('NETWORK_CALL_FAILED')).toBe(true);
+    expect(isSampledDebugErrorTemplateKey('EVENT_NOT_FOUND')).toBe(true);
+    expect(isSampledDebugErrorTemplateKey('FEATURE_NOT_FOUND')).toBe(true);
+    expect(isSampledDebugErrorTemplateKey('FEATURE_NOT_FOUND_WITH_ID')).toBe(true);
   });
 
   it('should return false for keys not in the sampled debug set', () => {
     expect(isSampledDebugErrorTemplateKey('INVALID_OPTIONS')).toBe(false);
+    expect(isSampledDebugErrorTemplateKey('EXECUTION_FAILED')).toBe(false);
+    expect(isSampledDebugErrorTemplateKey('NETWORK_CALL_FAILED')).toBe(false);
   });
 
   it('should return false for empty debug template keys', () => {
