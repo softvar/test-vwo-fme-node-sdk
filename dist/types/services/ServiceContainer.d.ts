@@ -22,6 +22,7 @@ import HooksService from './HooksService';
 import { NetworkManager } from '../packages/network-layer/manager/NetworkManager';
 import { LogManager } from '../packages/logger';
 import { Storage } from '../packages/storage';
+import { InternalEventsThrottleService } from './InternalEventsThrottleService';
 /**
  * ServiceContainer is a class that contains all the services that are used in the SDK.
  */
@@ -37,6 +38,8 @@ export declare class ServiceContainer {
   private Storage;
   private shouldWaitForTrackingCalls;
   private pollingStopCallback;
+  private internalEventsThrottleService;
+  private originalSettingsDocument;
   constructor(options: IWingifyOptions);
   /**
    *
@@ -144,4 +147,19 @@ export declare class ServiceContainer {
    * Stops settings polling if it was started. No-op if polling was not active.
    */
   stopPolling(): void;
+  /**
+   * Returns the internal-events throttle service for the current SDK instance.
+   * @returns The lazily initialized internal-events throttle service.
+   */
+  getInternalEventsThrottleService(): InternalEventsThrottleService;
+  /**
+   * Stores the raw settings document used for internal-event metadata lookups.
+   * @param settingsDocument - The unnormalized settings document from the server or init options.
+   */
+  setOriginalSettingsDocument(settingsDocument: Record<string, any>): void;
+  /**
+   * Returns the raw settings document used for internal-event metadata lookups.
+   * @returns The stored settings document.
+   */
+  getOriginalSettingsDocument(): Record<string, any>;
 }

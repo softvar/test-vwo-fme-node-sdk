@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Constants = void 0;
+exports.SAMPLED_DEBUG_ERROR_TEMPLATE_KEYS = exports.Constants = void 0;
 /**
  * Copyright 2024-2026 Wingify Software Pvt. Ltd.
  *
@@ -101,6 +101,17 @@ exports.Constants = {
     NETWORK_CALL_FAILURE_AFTER_MAX_RETRIES: 'NETWORK_CALL_FAILURE_AFTER_MAX_RETRIES',
     NETWORK_CALL_SUCCESS_WITH_RETRIES: 'NETWORK_CALL_SUCCESS_WITH_RETRIES',
     IMPACT_ANALYSIS: 'IMPACT_ANALYSIS',
+    // Internal events sampling constants
+    INTERNAL_EVENTS_SAMPLING_KEY: 'sampling',
+    INTERNAL_EVENTS_ALWAYS_APPLY_SAMPLING_KEY: 'alwaysApplySampling',
+    INTERNAL_EVENTS_USAGE_SAMPLING_KEY: 'usage',
+    INTERNAL_EVENTS_DEBUG_SAMPLING_KEY: 'debug',
+    INTERNAL_EVENTS_DEFAULT_SAMPLING_PERCENT: {
+        server: 10,
+        client: 1,
+        serverless: 1,
+    },
+    INTERNAL_EVENTS_DEFAULT_ALWAYS_APPLY_SAMPLING: false,
     // Holdout constants
     VARIATION_IS_PART_OF_HOLDOUT: 1,
     VARIATION_NOT_PART_OF_HOLDOUT: 2,
@@ -116,4 +127,6 @@ exports.Constants = {
     MIN_FREE_SOCKETS: 10,
     MIN_TIMEOUT: 30000,
 };
+var SampledDebugErrorTemplateKeys_1 = require("./SampledDebugErrorTemplateKeys");
+Object.defineProperty(exports, "SAMPLED_DEBUG_ERROR_TEMPLATE_KEYS", { enumerable: true, get: function () { return SampledDebugErrorTemplateKeys_1.SAMPLED_DEBUG_ERROR_TEMPLATE_KEYS; } });
 //# sourceMappingURL=index.js.map

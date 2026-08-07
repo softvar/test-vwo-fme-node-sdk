@@ -95,6 +95,7 @@ var WingifyClient = /** @class */ (function () {
             }
             (0, SettingsUtil_1.setSettingsAndAddCampaignsToRules)(settings, this, this.serviceContainer.getLogManager());
             this.serviceContainer.setSettings(this.settings);
+            this.serviceContainer.setOriginalSettingsDocument(this.originalSettings);
             this.serviceContainer.injectServiceContainer(this.serviceContainer);
             this.serviceContainer.setShouldWaitForTrackingCalls(this.options.shouldWaitForTrackingCalls || false);
             this.serviceContainer.getLogManager().info((0, LogMessageUtil_1.buildMessage)(log_messages_1.InfoLogMessagesEnum.CLIENT_INITIALIZED));
@@ -118,42 +119,42 @@ var WingifyClient = /** @class */ (function () {
      */
     WingifyClient.prototype.sendSdkInitAndUsageStatsEvents = function (usageStatsUtil) {
         return __awaiter(this, void 0, void 0, function () {
-            var settingsFetchTime, sdkInitTime, usageStatsAccountId, err_1;
-            var _a, _b, _c;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
+            var settingsFetchTime, sdkInitTime, internalEventsThrottleService, usageStatsAccountId, err_1;
+            var _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
-                        _d.trys.push([0, 7, , 8]);
+                        _b.trys.push([0, 7, , 8]);
                         settingsFetchTime = this.serviceContainer.getSettingsService().settingsFetchTime;
                         if (this.serviceContainer.getSettingsService().isSettingsProvidedInInit) {
                             // if settings are provided in init, then settings fetch time is 0
                             settingsFetchTime = 0;
                         }
                         sdkInitTime = Date.now() - this.serviceContainer.getSettingsService().startTimeForInit;
-                        if (!(this.isSettingsValid && !((_b = (_a = this.originalSettings) === null || _a === void 0 ? void 0 : _a.sdkMetaInfo) === null || _b === void 0 ? void 0 : _b.wasInitializedEarlier))) return [3 /*break*/, 3];
+                        internalEventsThrottleService = this.serviceContainer.getInternalEventsThrottleService();
+                        if (!(this.isSettingsValid && internalEventsThrottleService.shouldSendSdkInitEvent(this.originalSettings))) return [3 /*break*/, 3];
                         if (!this.options.shouldWaitForTrackingCalls) return [3 /*break*/, 2];
                         return [4 /*yield*/, (0, SdkInitAndUsageStatsUtil_1.sendSdkInitEvent)(settingsFetchTime, sdkInitTime, this.serviceContainer)];
                     case 1:
-                        _d.sent();
+                        _b.sent();
                         return [3 /*break*/, 3];
                     case 2:
-                        // send sdk init event
                         (0, SdkInitAndUsageStatsUtil_1.sendSdkInitEvent)(settingsFetchTime, sdkInitTime, this.serviceContainer);
-                        _d.label = 3;
+                        _b.label = 3;
                     case 3:
-                        usageStatsAccountId = (_c = this.originalSettings) === null || _c === void 0 ? void 0 : _c.usageStatsAccountId;
-                        if (!usageStatsAccountId) return [3 /*break*/, 6];
+                        usageStatsAccountId = (_a = this.originalSettings) === null || _a === void 0 ? void 0 : _a.usageStatsAccountId;
+                        if (!(usageStatsAccountId && internalEventsThrottleService.shouldSendUsageStatsEvent(this.originalSettings))) return [3 /*break*/, 6];
                         if (!this.options.shouldWaitForTrackingCalls) return [3 /*break*/, 5];
                         return [4 /*yield*/, (0, SdkInitAndUsageStatsUtil_1.sendSDKUsageStatsEvent)(usageStatsAccountId, this.serviceContainer, usageStatsUtil)];
                     case 4:
-                        _d.sent();
+                        _b.sent();
                         return [3 /*break*/, 6];
                     case 5:
                         (0, SdkInitAndUsageStatsUtil_1.sendSDKUsageStatsEvent)(usageStatsAccountId, this.serviceContainer, usageStatsUtil);
-                        _d.label = 6;
+                        _b.label = 6;
                     case 6: return [3 /*break*/, 8];
                     case 7:
-                        err_1 = _d.sent();
+                        err_1 = _b.sent();
                         this.serviceContainer
                             .getLogManager()
                             .error((0, LogMessageUtil_1.buildMessage)(log_messages_1.ErrorLogMessagesEnum.SDK_INIT_EVENT_FAILED, { err: (0, FunctionUtil_1.getFormattedErrorMessage)(err_1) }));
@@ -514,6 +515,7 @@ var WingifyClient = /** @class */ (function () {
                         // set the settings on the client instance
                         (0, SettingsUtil_1.setSettingsAndAddCampaignsToRules)(normalizedSettings, this.wingifyClientInstance, this.serviceContainer.getLogManager());
                         this.serviceContainer.setSettings(this.wingifyClientInstance.settings);
+                        this.serviceContainer.setOriginalSettingsDocument(this.wingifyClientInstance.originalSettings);
                         this.serviceContainer.injectServiceContainer(this.serviceContainer);
                         this.serviceContainer
                             .getLogManager()

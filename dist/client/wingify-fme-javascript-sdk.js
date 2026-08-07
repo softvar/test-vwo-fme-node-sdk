@@ -1,5 +1,5 @@
 /*!
- * vwo-fme-javascript-sdk - v1.61.0
+ * vwo-fme-javascript-sdk - v1.62.0
  * URL - https://github.com/wingify/vwo-fme-javascript-sdk
  *
  * Copyright 2024-2026 Wingify Software Pvt. Ltd.
@@ -46,7 +46,7 @@ return /******/ (() => { // webpackBootstrap
 /***/ ((module) => {
 
 module.exports = {
-  version: "1.61.0"
+  version: "1.62.0"
 };
 
 /***/ }),
@@ -859,6 +859,7 @@ var WingifyClient = /** @class */ (function () {
             }
             (0, SettingsUtil_1.setSettingsAndAddCampaignsToRules)(settings, this, this.serviceContainer.getLogManager());
             this.serviceContainer.setSettings(this.settings);
+            this.serviceContainer.setOriginalSettingsDocument(this.originalSettings);
             this.serviceContainer.injectServiceContainer(this.serviceContainer);
             this.serviceContainer.setShouldWaitForTrackingCalls(this.options.shouldWaitForTrackingCalls || false);
             this.serviceContainer.getLogManager().info((0, LogMessageUtil_1.buildMessage)(log_messages_1.InfoLogMessagesEnum.CLIENT_INITIALIZED));
@@ -882,42 +883,42 @@ var WingifyClient = /** @class */ (function () {
      */
     WingifyClient.prototype.sendSdkInitAndUsageStatsEvents = function (usageStatsUtil) {
         return __awaiter(this, void 0, void 0, function () {
-            var settingsFetchTime, sdkInitTime, usageStatsAccountId, err_1;
-            var _a, _b, _c;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
+            var settingsFetchTime, sdkInitTime, internalEventsThrottleService, usageStatsAccountId, err_1;
+            var _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
-                        _d.trys.push([0, 7, , 8]);
+                        _b.trys.push([0, 7, , 8]);
                         settingsFetchTime = this.serviceContainer.getSettingsService().settingsFetchTime;
                         if (this.serviceContainer.getSettingsService().isSettingsProvidedInInit) {
                             // if settings are provided in init, then settings fetch time is 0
                             settingsFetchTime = 0;
                         }
                         sdkInitTime = Date.now() - this.serviceContainer.getSettingsService().startTimeForInit;
-                        if (!(this.isSettingsValid && !((_b = (_a = this.originalSettings) === null || _a === void 0 ? void 0 : _a.sdkMetaInfo) === null || _b === void 0 ? void 0 : _b.wasInitializedEarlier))) return [3 /*break*/, 3];
+                        internalEventsThrottleService = this.serviceContainer.getInternalEventsThrottleService();
+                        if (!(this.isSettingsValid && internalEventsThrottleService.shouldSendSdkInitEvent(this.originalSettings))) return [3 /*break*/, 3];
                         if (!this.options.shouldWaitForTrackingCalls) return [3 /*break*/, 2];
                         return [4 /*yield*/, (0, SdkInitAndUsageStatsUtil_1.sendSdkInitEvent)(settingsFetchTime, sdkInitTime, this.serviceContainer)];
                     case 1:
-                        _d.sent();
+                        _b.sent();
                         return [3 /*break*/, 3];
                     case 2:
-                        // send sdk init event
                         (0, SdkInitAndUsageStatsUtil_1.sendSdkInitEvent)(settingsFetchTime, sdkInitTime, this.serviceContainer);
-                        _d.label = 3;
+                        _b.label = 3;
                     case 3:
-                        usageStatsAccountId = (_c = this.originalSettings) === null || _c === void 0 ? void 0 : _c.usageStatsAccountId;
-                        if (!usageStatsAccountId) return [3 /*break*/, 6];
+                        usageStatsAccountId = (_a = this.originalSettings) === null || _a === void 0 ? void 0 : _a.usageStatsAccountId;
+                        if (!(usageStatsAccountId && internalEventsThrottleService.shouldSendUsageStatsEvent(this.originalSettings))) return [3 /*break*/, 6];
                         if (!this.options.shouldWaitForTrackingCalls) return [3 /*break*/, 5];
                         return [4 /*yield*/, (0, SdkInitAndUsageStatsUtil_1.sendSDKUsageStatsEvent)(usageStatsAccountId, this.serviceContainer, usageStatsUtil)];
                     case 4:
-                        _d.sent();
+                        _b.sent();
                         return [3 /*break*/, 6];
                     case 5:
                         (0, SdkInitAndUsageStatsUtil_1.sendSDKUsageStatsEvent)(usageStatsAccountId, this.serviceContainer, usageStatsUtil);
-                        _d.label = 6;
+                        _b.label = 6;
                     case 6: return [3 /*break*/, 8];
                     case 7:
-                        err_1 = _d.sent();
+                        err_1 = _b.sent();
                         this.serviceContainer
                             .getLogManager()
                             .error((0, LogMessageUtil_1.buildMessage)(log_messages_1.ErrorLogMessagesEnum.SDK_INIT_EVENT_FAILED, { err: (0, FunctionUtil_1.getFormattedErrorMessage)(err_1) }));
@@ -1278,6 +1279,7 @@ var WingifyClient = /** @class */ (function () {
                         // set the settings on the client instance
                         (0, SettingsUtil_1.setSettingsAndAddCampaignsToRules)(normalizedSettings, this.wingifyClientInstance, this.serviceContainer.getLogManager());
                         this.serviceContainer.setSettings(this.wingifyClientInstance.settings);
+                        this.serviceContainer.setOriginalSettingsDocument(this.wingifyClientInstance.originalSettings);
                         this.serviceContainer.injectServiceContainer(this.serviceContainer);
                         this.serviceContainer
                             .getLogManager()
@@ -2562,6 +2564,49 @@ var createImpressionForTrack = function (serviceContainer, eventName, context, e
 
 /***/ }),
 
+/***/ "./lib/constants/SampledDebugErrorTemplateKeys.ts":
+/*!********************************************************!*\
+  !*** ./lib/constants/SampledDebugErrorTemplateKeys.ts ***!
+  \********************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+/**
+ * Copyright 2024-2026 Wingify Software Pvt. Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SAMPLED_DEBUG_ERROR_TEMPLATE_KEYS = void 0;
+/**
+ * Error log template keys (`msg_t`) that should be subject to debug-event sampling.
+ *
+ * Keys not listed here are treated as `ALWAYS_SEND` and bypass sampling checks.
+ * Update this list when product defines additional errors to sample.
+ *
+ * Current set targets high-volume missing resource errors (event/feature not found).
+ * Init/validation and network/settings errors are intentionally excluded and always send.
+ */
+exports.SAMPLED_DEBUG_ERROR_TEMPLATE_KEYS = new Set([
+    'EVENT_NOT_FOUND',
+    'FEATURE_NOT_FOUND',
+    'FEATURE_NOT_FOUND_WITH_ID',
+]);
+
+
+/***/ }),
+
 /***/ "./lib/constants/Url.ts":
 /*!******************************!*\
   !*** ./lib/constants/Url.ts ***!
@@ -2608,7 +2653,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Constants = void 0;
+exports.SAMPLED_DEBUG_ERROR_TEMPLATE_KEYS = exports.Constants = void 0;
 /**
  * Copyright 2024-2026 Wingify Software Pvt. Ltd.
  *
@@ -2700,6 +2745,17 @@ exports.Constants = {
     NETWORK_CALL_FAILURE_AFTER_MAX_RETRIES: 'NETWORK_CALL_FAILURE_AFTER_MAX_RETRIES',
     NETWORK_CALL_SUCCESS_WITH_RETRIES: 'NETWORK_CALL_SUCCESS_WITH_RETRIES',
     IMPACT_ANALYSIS: 'IMPACT_ANALYSIS',
+    // Internal events sampling constants
+    INTERNAL_EVENTS_SAMPLING_KEY: 'sampling',
+    INTERNAL_EVENTS_ALWAYS_APPLY_SAMPLING_KEY: 'alwaysApplySampling',
+    INTERNAL_EVENTS_USAGE_SAMPLING_KEY: 'usage',
+    INTERNAL_EVENTS_DEBUG_SAMPLING_KEY: 'debug',
+    INTERNAL_EVENTS_DEFAULT_SAMPLING_PERCENT: {
+        server: 10,
+        client: 1,
+        serverless: 1,
+    },
+    INTERNAL_EVENTS_DEFAULT_ALWAYS_APPLY_SAMPLING: false,
     // Holdout constants
     VARIATION_IS_PART_OF_HOLDOUT: 1,
     VARIATION_NOT_PART_OF_HOLDOUT: 2,
@@ -2715,6 +2771,8 @@ exports.Constants = {
     MIN_FREE_SOCKETS: 10,
     MIN_TIMEOUT: 30000,
 };
+var SampledDebugErrorTemplateKeys_1 = __webpack_require__(/*! ./SampledDebugErrorTemplateKeys */ "./lib/constants/SampledDebugErrorTemplateKeys.ts");
+Object.defineProperty(exports, "SAMPLED_DEBUG_ERROR_TEMPLATE_KEYS", ({ enumerable: true, get: function () { return SampledDebugErrorTemplateKeys_1.SAMPLED_DEBUG_ERROR_TEMPLATE_KEYS; } }));
 
 
 /***/ }),
@@ -4141,6 +4199,16 @@ var SettingsSchema = /** @class */ (function () {
             (0, superstruct_1.array)(this.holdoutSchema),
             (0, superstruct_1.refine)((0, superstruct_1.object)(), 'EmptyObject', function (v) { return Object.keys(v).length === 0; }),
         ]);
+        var runtimeSamplingSchema = (0, superstruct_1.object)({
+            server: (0, superstruct_1.optional)((0, superstruct_1.number)()),
+            client: (0, superstruct_1.optional)((0, superstruct_1.number)()),
+            serverless: (0, superstruct_1.optional)((0, superstruct_1.number)()),
+        });
+        var runtimeAlwaysApplySamplingSchema = (0, superstruct_1.object)({
+            server: (0, superstruct_1.optional)((0, superstruct_1.boolean)()),
+            client: (0, superstruct_1.optional)((0, superstruct_1.boolean)()),
+            serverless: (0, superstruct_1.optional)((0, superstruct_1.boolean)()),
+        });
         this.settingsSchema = (0, superstruct_1.type)({
             sdkKey: (0, superstruct_1.optional)((0, superstruct_1.string)()),
             version: (0, superstruct_1.union)([(0, superstruct_1.number)(), (0, superstruct_1.string)()]),
@@ -4152,7 +4220,14 @@ var SettingsSchema = /** @class */ (function () {
             groups: (0, superstruct_1.optional)((0, superstruct_1.object)()),
             campaignGroups: (0, superstruct_1.optional)((0, superstruct_1.object)()),
             collectionPrefix: (0, superstruct_1.optional)((0, superstruct_1.string)()),
-            sdkMetaInfo: (0, superstruct_1.optional)((0, superstruct_1.object)({ wasInitializedEarlier: (0, superstruct_1.optional)((0, superstruct_1.boolean)()) })),
+            sampling: (0, superstruct_1.optional)((0, superstruct_1.object)({
+                usage: (0, superstruct_1.optional)(runtimeSamplingSchema),
+                debug: (0, superstruct_1.optional)(runtimeSamplingSchema),
+            })),
+            alwaysApplySampling: (0, superstruct_1.optional)(runtimeAlwaysApplySamplingSchema),
+            sdkMetaInfo: (0, superstruct_1.optional)((0, superstruct_1.object)({
+                wasInitializedEarlier: (0, superstruct_1.optional)((0, superstruct_1.boolean)()),
+            })),
             pollInterval: (0, superstruct_1.optional)((0, superstruct_1.number)()),
         });
     };
@@ -4778,9 +4853,9 @@ var TransportManager_1 = __webpack_require__(/*! ./TransportManager */ "./lib/pa
 var DataTypeUtil_1 = __webpack_require__(/*! ../../../utils/DataTypeUtil */ "./lib/utils/DataTypeUtil.ts");
 var LogLevelEnum_1 = __webpack_require__(/*! ../enums/LogLevelEnum */ "./lib/packages/logger/enums/LogLevelEnum.ts");
 var LogMessageUtil_1 = __webpack_require__(/*! ../../../utils/LogMessageUtil */ "./lib/utils/LogMessageUtil.ts");
+var log_messages_1 = __webpack_require__(/*! ../../../enums/log-messages */ "./lib/enums/log-messages/index.ts");
 var DebuggerCategoryEnum_1 = __webpack_require__(/*! ../../../enums/DebuggerCategoryEnum */ "./lib/enums/DebuggerCategoryEnum.ts");
 var DebuggerServiceUtil_1 = __webpack_require__(/*! ../../../utils/DebuggerServiceUtil */ "./lib/utils/DebuggerServiceUtil.ts");
-var log_messages_1 = __webpack_require__(/*! ../../../enums/log-messages */ "./lib/enums/log-messages/index.ts");
 var FunctionUtil_1 = __webpack_require__(/*! ../../../utils/FunctionUtil */ "./lib/utils/FunctionUtil.ts");
 var constants_1 = __webpack_require__(/*! ../../../constants */ "./lib/constants/index.ts");
 /**
@@ -8828,6 +8903,91 @@ exports["default"] = HooksService;
 
 /***/ }),
 
+/***/ "./lib/services/InternalEventsThrottleService.ts":
+/*!*******************************************************!*\
+  !*** ./lib/services/InternalEventsThrottleService.ts ***!
+  \*******************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * Copyright 2024-2026 Wingify Software Pvt. Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.InternalEventsThrottleService = void 0;
+var InternalEventsRuntimeUtil_1 = __webpack_require__(/*! ../utils/InternalEventsRuntimeUtil */ "./lib/utils/InternalEventsRuntimeUtil.ts");
+/**
+ * Applies gating and sampling rules for internal SDK events
+ * (`vwo_fmeSdkInit`, `vwo_sdkUsageStats`, and sampled `vwo_sdkDebug`).
+ */
+var InternalEventsThrottleService = /** @class */ (function () {
+    /**
+     * Creates an internal-events throttle service bound to a service container.
+     * @param _serviceContainer - The SDK service container (reserved for future settings access).
+     * @param randomValueProvider - Optional provider for sampling randomness (used in tests).
+     */
+    function InternalEventsThrottleService(_serviceContainer, randomValueProvider) {
+        if (randomValueProvider === void 0) { randomValueProvider = Math.random; }
+        this.randomValueProvider = randomValueProvider;
+    }
+    /**
+     * Determines whether the SDK init internal event should be sent.
+     * @param settings - The current settings document.
+     * @returns True when the init event qualifies to be sent.
+     */
+    InternalEventsThrottleService.prototype.shouldSendSdkInitEvent = function (settings) {
+        if (settings === void 0) { settings = {}; }
+        return !(0, InternalEventsRuntimeUtil_1.wasSdkInitializedEarlier)(settings);
+    };
+    /**
+     * Determines whether the SDK usage-stats internal event should be sent.
+     * @param settings - The current settings document.
+     * @returns True when the usage-stats event qualifies to be sent.
+     */
+    InternalEventsThrottleService.prototype.shouldSendUsageStatsEvent = function (settings) {
+        if (settings === void 0) { settings = {}; }
+        // if the alwaysApplySampling flag is false then we need not to sample and send that event directly.
+        if (!(0, InternalEventsRuntimeUtil_1.shouldApplyEventSampling)(settings)) {
+            return true;
+        }
+        var usageStatsSamplingPercent = (0, InternalEventsRuntimeUtil_1.getUsageStatsSamplingPercent)(settings);
+        return (0, InternalEventsRuntimeUtil_1.passesSamplingPercent)(usageStatsSamplingPercent, this.randomValueProvider());
+    };
+    /**
+     * Determines whether a sampled debug internal event should be sent.
+     * Always-send debug events bypass this method entirely.
+     * @param settings - The current settings document.
+     * @returns True when the sampled debug event qualifies to be sent.
+     */
+    InternalEventsThrottleService.prototype.shouldSendSampledDebugEvent = function (settings) {
+        if (settings === void 0) { settings = {}; }
+        // if the alwaysApplySampling flag is false then we need not to sample and send that event directly.
+        if (!(0, InternalEventsRuntimeUtil_1.shouldApplyEventSampling)(settings)) {
+            return true;
+        }
+        var debugSamplingPercent = (0, InternalEventsRuntimeUtil_1.getDebugEventSamplingPercent)(settings);
+        return (0, InternalEventsRuntimeUtil_1.passesSamplingPercent)(debugSamplingPercent, this.randomValueProvider());
+    };
+    return InternalEventsThrottleService;
+}());
+exports.InternalEventsThrottleService = InternalEventsThrottleService;
+
+
+/***/ }),
+
 /***/ "./lib/services/ServiceContainer.ts":
 /*!******************************************!*\
   !*** ./lib/services/ServiceContainer.ts ***!
@@ -8859,6 +9019,7 @@ exports.ServiceContainer = void 0;
 var SegmentationManger_1 = __webpack_require__(/*! ../packages/segmentation-evaluator/core/SegmentationManger */ "./lib/packages/segmentation-evaluator/core/SegmentationManger.ts");
 var HooksService_1 = __importDefault(__webpack_require__(/*! ./HooksService */ "./lib/services/HooksService.ts"));
 var DataTypeUtil_1 = __webpack_require__(/*! ../utils/DataTypeUtil */ "./lib/utils/DataTypeUtil.ts");
+var InternalEventsThrottleService_1 = __webpack_require__(/*! ./InternalEventsThrottleService */ "./lib/services/InternalEventsThrottleService.ts");
 /**
  * ServiceContainer is a class that contains all the services that are used in the SDK.
  */
@@ -8866,6 +9027,8 @@ var ServiceContainer = /** @class */ (function () {
     function ServiceContainer(options) {
         this.BatchEventsQueue = null;
         this.pollingStopCallback = null;
+        this.internalEventsThrottleService = null;
+        this.originalSettingsDocument = {};
         this.vwoOptions = options;
         this.HooksService = new HooksService_1.default(this.vwoOptions);
         this.SegmentationManager = new SegmentationManger_1.SegmentationManager();
@@ -9043,6 +9206,30 @@ var ServiceContainer = /** @class */ (function () {
             this.pollingStopCallback();
             this.pollingStopCallback = null;
         }
+    };
+    /**
+     * Returns the internal-events throttle service for the current SDK instance.
+     * @returns The lazily initialized internal-events throttle service.
+     */
+    ServiceContainer.prototype.getInternalEventsThrottleService = function () {
+        if (!this.internalEventsThrottleService) {
+            this.internalEventsThrottleService = new InternalEventsThrottleService_1.InternalEventsThrottleService(this);
+        }
+        return this.internalEventsThrottleService;
+    };
+    /**
+     * Stores the raw settings document used for internal-event metadata lookups.
+     * @param settingsDocument - The unnormalized settings document from the server or init options.
+     */
+    ServiceContainer.prototype.setOriginalSettingsDocument = function (settingsDocument) {
+        this.originalSettingsDocument = settingsDocument !== null && settingsDocument !== void 0 ? settingsDocument : {};
+    };
+    /**
+     * Returns the raw settings document used for internal-event metadata lookups.
+     * @returns The stored settings document.
+     */
+    ServiceContainer.prototype.getOriginalSettingsDocument = function () {
+        return this.originalSettingsDocument;
     };
     return ServiceContainer;
 }());
@@ -10790,6 +10977,7 @@ exports.extractDecisionKeys = extractDecisionKeys;
 exports.sendDebugEventToWingify = sendDebugEventToWingify;
 var NetworkUtil_1 = __webpack_require__(/*! ./NetworkUtil */ "./lib/utils/NetworkUtil.ts");
 var EventEnum_1 = __webpack_require__(/*! ../enums/EventEnum */ "./lib/enums/EventEnum.ts");
+var InternalEventsRuntimeUtil_1 = __webpack_require__(/*! ./InternalEventsRuntimeUtil */ "./lib/utils/InternalEventsRuntimeUtil.ts");
 /**
  * Utility functions for handling debugger service operations including
  * filtering sensitive properties and extracting decision keys.
@@ -10821,27 +11009,39 @@ function extractDecisionKeys(decisionObj) {
     return extractedKeys;
 }
 /**
- * Sends a debug event to Wingify.
- * @param eventProps - The properties for the event.
- * @returns A promise that resolves when the event is sent.
+ * Sends a debug event to Wingify after applying sampled-event sampling rules.
+ * @param serviceContainer - The SDK service container.
+ * @param eventProps - The properties for the debug event.
+ * @returns A promise that resolves when the event is sent or skipped.
  */
 function sendDebugEventToWingify(serviceContainer_1) {
     return __awaiter(this, arguments, void 0, function (serviceContainer, eventProps) {
-        var properties, payload;
+        var messageTemplateKey, isSampledDebugEvent, settings, properties, payload;
         if (eventProps === void 0) { eventProps = {}; }
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    messageTemplateKey = eventProps.msg_t;
+                    isSampledDebugEvent = messageTemplateKey ? (0, InternalEventsRuntimeUtil_1.isSampledDebugErrorTemplateKey)(messageTemplateKey) : false;
+                    settings = serviceContainer.getOriginalSettingsDocument();
+                    // check if the sampled debug event should be sent.
+                    // if the sampled debug event should not be sent, return.
+                    if (isSampledDebugEvent &&
+                        !serviceContainer.getInternalEventsThrottleService().shouldSendSampledDebugEvent(settings)) {
+                        return [2 /*return*/];
+                    }
                     properties = (0, NetworkUtil_1.getEventsBaseProperties)(serviceContainer.getSettingsService(), EventEnum_1.EventEnum.DEBUGGER_EVENT, null, null);
                     payload = (0, NetworkUtil_1.getDebuggerEventPayload)(serviceContainer.getSettingsService(), eventProps);
-                    if (!serviceContainer.getBatchEventsQueue()) return [3 /*break*/, 1];
-                    serviceContainer.getBatchEventsQueue().enqueue(payload);
-                    return [3 /*break*/, 3];
-                case 1: return [4 /*yield*/, (0, NetworkUtil_1.sendEvent)(serviceContainer, properties, payload, EventEnum_1.EventEnum.DEBUGGER_EVENT).catch(function () { })];
-                case 2:
+                    if (serviceContainer.getBatchEventsQueue()) {
+                        serviceContainer.getBatchEventsQueue().enqueue(payload);
+                        return [2 /*return*/];
+                    }
+                    // send the debug event to the server.
+                    return [4 /*yield*/, (0, NetworkUtil_1.sendEvent)(serviceContainer, properties, payload, EventEnum_1.EventEnum.DEBUGGER_EVENT).catch(function () { })];
+                case 1:
+                    // send the debug event to the server.
                     _a.sent();
-                    _a.label = 3;
-                case 3: return [2 /*return*/];
+                    return [2 /*return*/];
             }
         });
     });
@@ -12309,6 +12509,159 @@ var sendImpressionForVariationShownInBatch = function (serviceContainer, payload
     });
 }); };
 exports.sendImpressionForVariationShownInBatch = sendImpressionForVariationShownInBatch;
+
+
+/***/ }),
+
+/***/ "./lib/utils/InternalEventsRuntimeUtil.ts":
+/*!************************************************!*\
+  !*** ./lib/utils/InternalEventsRuntimeUtil.ts ***!
+  \************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * Copyright 2024-2026 Wingify Software Pvt. Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.wasSdkInitializedEarlier = wasSdkInitializedEarlier;
+exports.getInternalEventsRuntimeKey = getInternalEventsRuntimeKey;
+exports.getDefaultSamplingPercent = getDefaultSamplingPercent;
+exports.normalizeSamplingPercent = normalizeSamplingPercent;
+exports.getRuntimeSamplingPercent = getRuntimeSamplingPercent;
+exports.getUsageStatsSamplingPercent = getUsageStatsSamplingPercent;
+exports.getDebugEventSamplingPercent = getDebugEventSamplingPercent;
+exports.shouldApplyEventSampling = shouldApplyEventSampling;
+exports.passesSamplingPercent = passesSamplingPercent;
+exports.isSampledDebugErrorTemplateKey = isSampledDebugErrorTemplateKey;
+var constants_1 = __webpack_require__(/*! ../constants */ "./lib/constants/index.ts");
+var SampledDebugErrorTemplateKeys_1 = __webpack_require__(/*! ../constants/SampledDebugErrorTemplateKeys */ "./lib/constants/SampledDebugErrorTemplateKeys.ts");
+/**
+ * Indicates whether the backend has already received an SDK init event for the account.
+ * @param settings - The raw or normalized settings document.
+ * @returns True when the account was initialized earlier.
+ */
+function wasSdkInitializedEarlier(settings) {
+    var _a;
+    if (settings === void 0) { settings = {}; }
+    return ((_a = settings === null || settings === void 0 ? void 0 : settings.sdkMetaInfo) === null || _a === void 0 ? void 0 : _a.wasInitializedEarlier) === true;
+}
+/**
+ * Resolves the runtime key used to read values from `sdkMetaInfo.sampling` and
+ * `sdkMetaInfo.alwaysApplySampling`.
+ * @returns The runtime key for the current environment.
+ */
+function getInternalEventsRuntimeKey() {
+    if (true) {
+        // process is absent — could be browser or edge/serverless
+        if (typeof XMLHttpRequest !== 'undefined') {
+            return 'client'; // browser: no process, but XHR exists
+        }
+        return 'serverless'; // edge environment (Cloudflare Workers, Vercel Edge, Deno): no process, no XHR
+    }
+    return 'server'; // any Node.js environment (regular server, AWS Lambda, Cloud Functions, etc.)
+}
+/**
+ * Returns the default sampling percentage for a runtime when settings omit or invalidate the value.
+ * @param runtimeKey - The runtime key (`server`, `client`, or `serverless`).
+ * @returns The default sampling percentage for that runtime.
+ */
+function getDefaultSamplingPercent(runtimeKey) {
+    return constants_1.Constants.INTERNAL_EVENTS_DEFAULT_SAMPLING_PERCENT[runtimeKey];
+}
+/**
+ * Normalizes a sampling percentage to the inclusive range [0, 100].
+ * @param samplingValue - The raw value from settings.
+ * @param runtimeKey - The runtime key used to resolve the default when the value is absent or invalid.
+ * @returns A valid sampling percentage, or the runtime default when invalid.
+ */
+function normalizeSamplingPercent(samplingValue, runtimeKey) {
+    if (typeof samplingValue === 'number' && samplingValue >= 0 && samplingValue <= 100) {
+        return samplingValue;
+    }
+    return getDefaultSamplingPercent(runtimeKey);
+}
+/**
+ * Reads a per-runtime sampling percentage from a nested settings object.
+ * @param runtimeSamplingConfig - The nested config (e.g. `sdkMetaInfo.sampling.usage`).
+ * @param runtimeKey - The runtime key (`server`, `client`, or `serverless`).
+ * @returns The sampling percentage for that runtime.
+ */
+function getRuntimeSamplingPercent(runtimeSamplingConfig, runtimeKey) {
+    return normalizeSamplingPercent(runtimeSamplingConfig === null || runtimeSamplingConfig === void 0 ? void 0 : runtimeSamplingConfig[runtimeKey], runtimeKey);
+}
+/**
+ * Reads the usage-stats sampling percentage for the current runtime.
+ * @param settings - The raw or normalized settings document.
+ * @returns The configured usage-stats sampling percentage (0–100).
+ */
+function getUsageStatsSamplingPercent(settings) {
+    var _a;
+    if (settings === void 0) { settings = {}; }
+    var usageSamplingConfig = (_a = settings === null || settings === void 0 ? void 0 : settings[constants_1.Constants.INTERNAL_EVENTS_SAMPLING_KEY]) === null || _a === void 0 ? void 0 : _a[constants_1.Constants.INTERNAL_EVENTS_USAGE_SAMPLING_KEY];
+    return getRuntimeSamplingPercent(usageSamplingConfig, getInternalEventsRuntimeKey());
+}
+/**
+ * Reads the debug-event sampling percentage for the current runtime.
+ * @param settings - The raw or normalized settings document.
+ * @returns The configured debug sampling percentage (0–100).
+ */
+function getDebugEventSamplingPercent(settings) {
+    var _a;
+    if (settings === void 0) { settings = {}; }
+    var debugSamplingConfig = (_a = settings === null || settings === void 0 ? void 0 : settings[constants_1.Constants.INTERNAL_EVENTS_SAMPLING_KEY]) === null || _a === void 0 ? void 0 : _a[constants_1.Constants.INTERNAL_EVENTS_DEBUG_SAMPLING_KEY];
+    return getRuntimeSamplingPercent(debugSamplingConfig, getInternalEventsRuntimeKey());
+}
+/**
+ * Indicates whether sampling should be applied for the current runtime.
+ * Reads `alwaysApplySampling.{server|client|serverless}`; defaults to false when absent as the server anyways dedupes the events.
+ * @param settings - The raw or normalized settings document.
+ * @returns True when sampling must be evaluated before sending an internal event.
+ */
+function shouldApplyEventSampling(settings) {
+    if (settings === void 0) { settings = {}; }
+    var alwaysApplyConfig = settings === null || settings === void 0 ? void 0 : settings[constants_1.Constants.INTERNAL_EVENTS_ALWAYS_APPLY_SAMPLING_KEY];
+    var runtimeFlag = alwaysApplyConfig === null || alwaysApplyConfig === void 0 ? void 0 : alwaysApplyConfig[getInternalEventsRuntimeKey()];
+    if (typeof runtimeFlag === 'boolean') {
+        return runtimeFlag;
+    }
+    return constants_1.Constants.INTERNAL_EVENTS_DEFAULT_ALWAYS_APPLY_SAMPLING;
+}
+/**
+ * Evaluates whether an event qualifies under the configured sampling percentage.
+ * @param samplingPercent - The configured sampling percentage (0–100).
+ * @param randomValue - A random value in the range [0, 1). Defaults to `Math.random()`.
+ * @returns True when the generated value falls within the sampling threshold.
+ */
+function passesSamplingPercent(samplingPercent, randomValue) {
+    if (randomValue === void 0) { randomValue = Math.random(); }
+    var normalizedRandomPercent = Math.floor(randomValue * 101);
+    return normalizedRandomPercent <= samplingPercent;
+}
+/**
+ * Indicates whether a debug error template key is categorized as sampled.
+ * @param messageTemplateKey - The error log template key (`msg_t`).
+ * @returns True when the key is listed in {@link SAMPLED_DEBUG_ERROR_TEMPLATE_KEYS}.
+ */
+function isSampledDebugErrorTemplateKey(messageTemplateKey) {
+    if (!messageTemplateKey) {
+        return false;
+    }
+    return SampledDebugErrorTemplateKeys_1.SAMPLED_DEBUG_ERROR_TEMPLATE_KEYS.has(messageTemplateKey);
+}
 
 
 /***/ }),
@@ -13929,9 +14282,9 @@ var EventEnum_1 = __webpack_require__(/*! ../enums/EventEnum */ "./lib/enums/Eve
 /**
  * Sends an init called event to Wingify.
  * This event is triggered when the init function is called.
- * @param {number} settingsFetchTime - Time taken to fetch settings in milliseconds.
- * @param {number} sdkInitTime - Time taken to initialize the SDK in milliseconds.
- * @param {ServiceContainer} serviceContainer - The service container instance.
+ * @param settingsFetchTime - Time taken to fetch settings in milliseconds.
+ * @param sdkInitTime - Time taken to initialize the SDK in milliseconds.
+ * @param serviceContainer - The service container instance.
  */
 function sendSdkInitEvent(settingsFetchTime, sdkInitTime, serviceContainer) {
     return __awaiter(this, void 0, void 0, function () {
@@ -13941,19 +14294,14 @@ function sendSdkInitEvent(settingsFetchTime, sdkInitTime, serviceContainer) {
                 case 0:
                     properties = (0, NetworkUtil_1.getEventsBaseProperties)(serviceContainer.getSettingsService(), EventEnum_1.EventEnum.INIT_CALLED);
                     payload = (0, NetworkUtil_1.getSDKInitEventPayload)(serviceContainer.getSettingsService(), EventEnum_1.EventEnum.INIT_CALLED, settingsFetchTime, sdkInitTime);
-                    if (!serviceContainer.getBatchEventsQueue()) return [3 /*break*/, 1];
-                    serviceContainer.getBatchEventsQueue().enqueue(payload);
-                    return [3 /*break*/, 3];
-                case 1: 
-                // Send the constructed properties and payload as a POST request
-                //send eventName in parameters so that we can enable retry for this event
-                return [4 /*yield*/, (0, NetworkUtil_1.sendEvent)(serviceContainer, properties, payload, EventEnum_1.EventEnum.INIT_CALLED).catch(function () { })];
-                case 2:
-                    // Send the constructed properties and payload as a POST request
-                    //send eventName in parameters so that we can enable retry for this event
+                    if (serviceContainer.getBatchEventsQueue()) {
+                        serviceContainer.getBatchEventsQueue().enqueue(payload);
+                        return [2 /*return*/];
+                    }
+                    return [4 /*yield*/, (0, NetworkUtil_1.sendEvent)(serviceContainer, properties, payload, EventEnum_1.EventEnum.INIT_CALLED).catch(function () { })];
+                case 1:
                     _a.sent();
-                    _a.label = 3;
-                case 3: return [2 /*return*/];
+                    return [2 /*return*/];
             }
         });
     });
@@ -13961,7 +14309,9 @@ function sendSdkInitEvent(settingsFetchTime, sdkInitTime, serviceContainer) {
 /**
  * Sends a usage stats event to Wingify.
  * This event is triggered when the SDK is initialized.
- * @returns A promise that resolves to the response from the server.
+ * @param usageStatsAccountId - The account ID used for usage-stats reporting.
+ * @param serviceContainer - The service container instance.
+ * @param usageStatsUtil - The usage-stats payload builder.
  */
 function sendSDKUsageStatsEvent(usageStatsAccountId, serviceContainer, usageStatsUtil) {
     return __awaiter(this, void 0, void 0, function () {
@@ -13971,19 +14321,14 @@ function sendSDKUsageStatsEvent(usageStatsAccountId, serviceContainer, usageStat
                 case 0:
                     properties = (0, NetworkUtil_1.getEventsBaseProperties)(serviceContainer.getSettingsService(), EventEnum_1.EventEnum.USAGE_STATS, null, null, true, usageStatsAccountId);
                     payload = (0, NetworkUtil_1.getSDKUsageStatsEventPayload)(serviceContainer.getSettingsService(), EventEnum_1.EventEnum.USAGE_STATS, usageStatsAccountId, usageStatsUtil);
-                    if (!serviceContainer.getBatchEventsQueue()) return [3 /*break*/, 1];
-                    serviceContainer.getBatchEventsQueue().enqueue(payload);
-                    return [3 /*break*/, 3];
-                case 1: 
-                // Send the constructed properties and payload as a POST request
-                //send eventName in parameters so that we can enable retry for this event
-                return [4 /*yield*/, (0, NetworkUtil_1.sendEvent)(serviceContainer, properties, payload, EventEnum_1.EventEnum.USAGE_STATS).catch(function () { })];
-                case 2:
-                    // Send the constructed properties and payload as a POST request
-                    //send eventName in parameters so that we can enable retry for this event
+                    if (serviceContainer.getBatchEventsQueue()) {
+                        serviceContainer.getBatchEventsQueue().enqueue(payload);
+                        return [2 /*return*/];
+                    }
+                    return [4 /*yield*/, (0, NetworkUtil_1.sendEvent)(serviceContainer, properties, payload, EventEnum_1.EventEnum.USAGE_STATS).catch(function () { })];
+                case 1:
                     _a.sent();
-                    _a.label = 3;
-                case 3: return [2 /*return*/];
+                    return [2 /*return*/];
             }
         });
     });

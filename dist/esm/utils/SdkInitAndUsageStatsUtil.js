@@ -18,41 +18,33 @@ import { EventEnum } from '../enums/EventEnum.js';
 /**
  * Sends an init called event to Wingify.
  * This event is triggered when the init function is called.
- * @param {number} settingsFetchTime - Time taken to fetch settings in milliseconds.
- * @param {number} sdkInitTime - Time taken to initialize the SDK in milliseconds.
- * @param {ServiceContainer} serviceContainer - The service container instance.
+ * @param settingsFetchTime - Time taken to fetch settings in milliseconds.
+ * @param sdkInitTime - Time taken to initialize the SDK in milliseconds.
+ * @param serviceContainer - The service container instance.
  */
 export async function sendSdkInitEvent(settingsFetchTime, sdkInitTime, serviceContainer) {
-    // create the query parameters
     const properties = getEventsBaseProperties(serviceContainer.getSettingsService(), EventEnum.INIT_CALLED);
-    // create the payload with required fields
     const payload = getSDKInitEventPayload(serviceContainer.getSettingsService(), EventEnum.INIT_CALLED, settingsFetchTime, sdkInitTime);
     if (serviceContainer.getBatchEventsQueue()) {
         serviceContainer.getBatchEventsQueue().enqueue(payload);
+        return;
     }
-    else {
-        // Send the constructed properties and payload as a POST request
-        //send eventName in parameters so that we can enable retry for this event
-        await sendEvent(serviceContainer, properties, payload, EventEnum.INIT_CALLED).catch(() => { });
-    }
+    await sendEvent(serviceContainer, properties, payload, EventEnum.INIT_CALLED).catch(() => { });
 }
 /**
  * Sends a usage stats event to Wingify.
  * This event is triggered when the SDK is initialized.
- * @returns A promise that resolves to the response from the server.
+ * @param usageStatsAccountId - The account ID used for usage-stats reporting.
+ * @param serviceContainer - The service container instance.
+ * @param usageStatsUtil - The usage-stats payload builder.
  */
 export async function sendSDKUsageStatsEvent(usageStatsAccountId, serviceContainer, usageStatsUtil) {
-    // create the query parameters
     const properties = getEventsBaseProperties(serviceContainer.getSettingsService(), EventEnum.USAGE_STATS, null, null, true, usageStatsAccountId);
-    // create the payload with required fields
     const payload = getSDKUsageStatsEventPayload(serviceContainer.getSettingsService(), EventEnum.USAGE_STATS, usageStatsAccountId, usageStatsUtil);
     if (serviceContainer.getBatchEventsQueue()) {
         serviceContainer.getBatchEventsQueue().enqueue(payload);
+        return;
     }
-    else {
-        // Send the constructed properties and payload as a POST request
-        //send eventName in parameters so that we can enable retry for this event
-        await sendEvent(serviceContainer, properties, payload, EventEnum.USAGE_STATS).catch(() => { });
-    }
+    await sendEvent(serviceContainer, properties, payload, EventEnum.USAGE_STATS).catch(() => { });
 }
 //# sourceMappingURL=SdkInitAndUsageStatsUtil.js.map

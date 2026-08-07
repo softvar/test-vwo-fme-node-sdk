@@ -19,9 +19,9 @@ import { LogTransportManager } from './TransportManager.js';
 import { isObject } from '../../../utils/DataTypeUtil.js';
 import { LogLevelEnum } from '../enums/LogLevelEnum.js';
 import { buildMessage } from '../../../utils/LogMessageUtil.js';
+import { ErrorLogMessagesEnum } from '../../../enums/log-messages/index.js';
 import { DebuggerCategoryEnum } from '../../../enums/DebuggerCategoryEnum.js';
 import { sendDebugEventToWingify } from '../../../utils/DebuggerServiceUtil.js';
-import { ErrorLogMessagesEnum } from '../../../enums/log-messages/index.js';
 import { getFormattedErrorMessage } from '../../../utils/FunctionUtil.js';
 import { Constants } from '../../../constants/index.js';
 /**

@@ -91,6 +91,16 @@ var SettingsSchema = /** @class */ (function () {
             (0, superstruct_1.array)(this.holdoutSchema),
             (0, superstruct_1.refine)((0, superstruct_1.object)(), 'EmptyObject', function (v) { return Object.keys(v).length === 0; }),
         ]);
+        var runtimeSamplingSchema = (0, superstruct_1.object)({
+            server: (0, superstruct_1.optional)((0, superstruct_1.number)()),
+            client: (0, superstruct_1.optional)((0, superstruct_1.number)()),
+            serverless: (0, superstruct_1.optional)((0, superstruct_1.number)()),
+        });
+        var runtimeAlwaysApplySamplingSchema = (0, superstruct_1.object)({
+            server: (0, superstruct_1.optional)((0, superstruct_1.boolean)()),
+            client: (0, superstruct_1.optional)((0, superstruct_1.boolean)()),
+            serverless: (0, superstruct_1.optional)((0, superstruct_1.boolean)()),
+        });
         this.settingsSchema = (0, superstruct_1.type)({
             sdkKey: (0, superstruct_1.optional)((0, superstruct_1.string)()),
             version: (0, superstruct_1.union)([(0, superstruct_1.number)(), (0, superstruct_1.string)()]),
@@ -102,7 +112,14 @@ var SettingsSchema = /** @class */ (function () {
             groups: (0, superstruct_1.optional)((0, superstruct_1.object)()),
             campaignGroups: (0, superstruct_1.optional)((0, superstruct_1.object)()),
             collectionPrefix: (0, superstruct_1.optional)((0, superstruct_1.string)()),
-            sdkMetaInfo: (0, superstruct_1.optional)((0, superstruct_1.object)({ wasInitializedEarlier: (0, superstruct_1.optional)((0, superstruct_1.boolean)()) })),
+            sampling: (0, superstruct_1.optional)((0, superstruct_1.object)({
+                usage: (0, superstruct_1.optional)(runtimeSamplingSchema),
+                debug: (0, superstruct_1.optional)(runtimeSamplingSchema),
+            })),
+            alwaysApplySampling: (0, superstruct_1.optional)(runtimeAlwaysApplySamplingSchema),
+            sdkMetaInfo: (0, superstruct_1.optional)((0, superstruct_1.object)({
+                wasInitializedEarlier: (0, superstruct_1.optional)((0, superstruct_1.boolean)()),
+            })),
             pollInterval: (0, superstruct_1.optional)((0, superstruct_1.number)()),
         });
     };

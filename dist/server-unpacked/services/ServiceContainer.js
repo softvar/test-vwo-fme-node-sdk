@@ -22,6 +22,7 @@ exports.ServiceContainer = void 0;
 var SegmentationManger_1 = require("../packages/segmentation-evaluator/core/SegmentationManger");
 var HooksService_1 = __importDefault(require("./HooksService"));
 var DataTypeUtil_1 = require("../utils/DataTypeUtil");
+var InternalEventsThrottleService_1 = require("./InternalEventsThrottleService");
 /**
  * ServiceContainer is a class that contains all the services that are used in the SDK.
  */
@@ -29,6 +30,8 @@ var ServiceContainer = /** @class */ (function () {
     function ServiceContainer(options) {
         this.BatchEventsQueue = null;
         this.pollingStopCallback = null;
+        this.internalEventsThrottleService = null;
+        this.originalSettingsDocument = {};
         this.vwoOptions = options;
         this.HooksService = new HooksService_1.default(this.vwoOptions);
         this.SegmentationManager = new SegmentationManger_1.SegmentationManager();
@@ -206,6 +209,30 @@ var ServiceContainer = /** @class */ (function () {
             this.pollingStopCallback();
             this.pollingStopCallback = null;
         }
+    };
+    /**
+     * Returns the internal-events throttle service for the current SDK instance.
+     * @returns The lazily initialized internal-events throttle service.
+     */
+    ServiceContainer.prototype.getInternalEventsThrottleService = function () {
+        if (!this.internalEventsThrottleService) {
+            this.internalEventsThrottleService = new InternalEventsThrottleService_1.InternalEventsThrottleService(this);
+        }
+        return this.internalEventsThrottleService;
+    };
+    /**
+     * Stores the raw settings document used for internal-event metadata lookups.
+     * @param settingsDocument - The unnormalized settings document from the server or init options.
+     */
+    ServiceContainer.prototype.setOriginalSettingsDocument = function (settingsDocument) {
+        this.originalSettingsDocument = settingsDocument !== null && settingsDocument !== void 0 ? settingsDocument : {};
+    };
+    /**
+     * Returns the raw settings document used for internal-event metadata lookups.
+     * @returns The stored settings document.
+     */
+    ServiceContainer.prototype.getOriginalSettingsDocument = function () {
+        return this.originalSettingsDocument;
     };
     return ServiceContainer;
 }());

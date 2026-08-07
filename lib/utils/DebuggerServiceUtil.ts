@@ -17,6 +17,7 @@
 import { getDebuggerEventPayload, getEventsBaseProperties, sendEvent } from './NetworkUtil';
 import { EventEnum } from '../enums/EventEnum';
 import { ServiceContainer } from '../services/ServiceContainer';
+import { isSampledDebugErrorTemplateKey } from './InternalEventsRuntimeUtil';
 
 /**
  * Utility functions for handling debugger service operations including
@@ -55,15 +56,29 @@ export function extractDecisionKeys(decisionObj: Record<string, any> = {}): Reco
 }
 
 /**
- * Sends a debug event to Wingify.
- * @param eventProps - The properties for the event.
- * @returns A promise that resolves when the event is sent.
+ * Sends a debug event to Wingify after applying sampled-event sampling rules.
+ * @param serviceContainer - The SDK service container.
+ * @param eventProps - The properties for the debug event.
+ * @returns A promise that resolves when the event is sent or skipped.
  */
 export async function sendDebugEventToWingify(
   serviceContainer: ServiceContainer,
   eventProps: Record<string, any> = {},
 ): Promise<void> {
-  // create query parameters
+  const messageTemplateKey = eventProps.msg_t;
+  // check if the message template key is sampled
+  const isSampledDebugEvent = messageTemplateKey ? isSampledDebugErrorTemplateKey(messageTemplateKey) : false;
+  const settings = serviceContainer.getOriginalSettingsDocument();
+
+  // check if the sampled debug event should be sent.
+  // if the sampled debug event should not be sent, return.
+  if (
+    isSampledDebugEvent &&
+    !serviceContainer.getInternalEventsThrottleService().shouldSendSampledDebugEvent(settings)
+  ) {
+    return;
+  }
+
   const properties = getEventsBaseProperties(
     serviceContainer.getSettingsService(),
     EventEnum.DEBUGGER_EVENT,
@@ -71,12 +86,13 @@ export async function sendDebugEventToWingify(
     null,
   );
 
-  // create payload
   const payload = getDebuggerEventPayload(serviceContainer.getSettingsService(), eventProps);
 
   if (serviceContainer.getBatchEventsQueue()) {
     serviceContainer.getBatchEventsQueue().enqueue(payload);
-  } else {
-    await sendEvent(serviceContainer, properties, payload, EventEnum.DEBUGGER_EVENT).catch(() => {});
+    return;
   }
+
+  // send the debug event to the server.
+  await sendEvent(serviceContainer, properties, payload, EventEnum.DEBUGGER_EVENT).catch(() => {});
 }

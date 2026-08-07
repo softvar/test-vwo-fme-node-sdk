@@ -53,6 +53,16 @@ export declare const Constants: {
   NETWORK_CALL_FAILURE_AFTER_MAX_RETRIES: string;
   NETWORK_CALL_SUCCESS_WITH_RETRIES: string;
   IMPACT_ANALYSIS: string;
+  INTERNAL_EVENTS_SAMPLING_KEY: string;
+  INTERNAL_EVENTS_ALWAYS_APPLY_SAMPLING_KEY: string;
+  INTERNAL_EVENTS_USAGE_SAMPLING_KEY: string;
+  INTERNAL_EVENTS_DEBUG_SAMPLING_KEY: string;
+  INTERNAL_EVENTS_DEFAULT_SAMPLING_PERCENT: {
+    server: number;
+    client: number;
+    serverless: number;
+  };
+  INTERNAL_EVENTS_DEFAULT_ALWAYS_APPLY_SAMPLING: boolean;
   VARIATION_IS_PART_OF_HOLDOUT: number;
   VARIATION_NOT_PART_OF_HOLDOUT: number;
   DEFAULT_HTTPS_AGENT: {
@@ -65,3 +75,4 @@ export declare const Constants: {
   MIN_FREE_SOCKETS: number;
   MIN_TIMEOUT: number;
 };
+export { SAMPLED_DEBUG_ERROR_TEMPLATE_KEYS } from './SampledDebugErrorTemplateKeys';

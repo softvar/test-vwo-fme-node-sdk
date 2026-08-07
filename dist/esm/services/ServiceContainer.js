@@ -16,6 +16,7 @@
 import { SegmentationManager } from '../packages/segmentation-evaluator/core/SegmentationManger.js';
 import HooksService from './HooksService.js';
 import { isString } from '../utils/DataTypeUtil.js';
+import { InternalEventsThrottleService } from './InternalEventsThrottleService.js';
 /**
  * ServiceContainer is a class that contains all the services that are used in the SDK.
  */
@@ -23,6 +24,8 @@ export class ServiceContainer {
     constructor(options) {
         this.BatchEventsQueue = null;
         this.pollingStopCallback = null;
+        this.internalEventsThrottleService = null;
+        this.originalSettingsDocument = {};
         this.vwoOptions = options;
         this.HooksService = new HooksService(this.vwoOptions);
         this.SegmentationManager = new SegmentationManager();
@@ -199,6 +202,30 @@ export class ServiceContainer {
             this.pollingStopCallback();
             this.pollingStopCallback = null;
         }
+    }
+    /**
+     * Returns the internal-events throttle service for the current SDK instance.
+     * @returns The lazily initialized internal-events throttle service.
+     */
+    getInternalEventsThrottleService() {
+        if (!this.internalEventsThrottleService) {
+            this.internalEventsThrottleService = new InternalEventsThrottleService(this);
+        }
+        return this.internalEventsThrottleService;
+    }
+    /**
+     * Stores the raw settings document used for internal-event metadata lookups.
+     * @param settingsDocument - The unnormalized settings document from the server or init options.
+     */
+    setOriginalSettingsDocument(settingsDocument) {
+        this.originalSettingsDocument = settingsDocument ?? {};
+    }
+    /**
+     * Returns the raw settings document used for internal-event metadata lookups.
+     * @returns The stored settings document.
+     */
+    getOriginalSettingsDocument() {
+        return this.originalSettingsDocument;
     }
 }
 //# sourceMappingURL=ServiceContainer.js.map

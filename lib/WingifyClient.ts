@@ -107,6 +107,7 @@ export class WingifyClient implements IWingifyClient {
       }
       setSettingsAndAddCampaignsToRules(settings, this, this.serviceContainer.getLogManager());
       this.serviceContainer.setSettings(this.settings);
+      this.serviceContainer.setOriginalSettingsDocument(this.originalSettings);
       this.serviceContainer.injectServiceContainer(this.serviceContainer);
       this.serviceContainer.setShouldWaitForTrackingCalls(this.options.shouldWaitForTrackingCalls || false);
 
@@ -144,20 +145,18 @@ export class WingifyClient implements IWingifyClient {
       }
       // get sdk init time
       const sdkInitTime = Date.now() - this.serviceContainer.getSettingsService().startTimeForInit;
-      // if settings are valid and was initialized earlier is false, then send sdk init event
-      if (this.isSettingsValid && !this.originalSettings?.sdkMetaInfo?.wasInitializedEarlier) {
-        // if shouldWaitForTrackingCalls is true, then wait for sendSdkInitEvent to complete
+      const internalEventsThrottleService = this.serviceContainer.getInternalEventsThrottleService();
+
+      if (this.isSettingsValid && internalEventsThrottleService.shouldSendSdkInitEvent(this.originalSettings)) {
         if (this.options.shouldWaitForTrackingCalls) {
           await sendSdkInitEvent(settingsFetchTime, sdkInitTime, this.serviceContainer);
         } else {
-          // send sdk init event
           sendSdkInitEvent(settingsFetchTime, sdkInitTime, this.serviceContainer);
         }
       }
 
-      // send sdk usage stats event
       const usageStatsAccountId = this.originalSettings?.usageStatsAccountId;
-      if (usageStatsAccountId) {
+      if (usageStatsAccountId && internalEventsThrottleService.shouldSendUsageStatsEvent(this.originalSettings)) {
         if (this.options.shouldWaitForTrackingCalls) {
           await sendSDKUsageStatsEvent(usageStatsAccountId, this.serviceContainer, usageStatsUtil);
         } else {
@@ -571,6 +570,7 @@ export class WingifyClient implements IWingifyClient {
         this.serviceContainer.getLogManager(),
       );
       this.serviceContainer.setSettings(this.wingifyClientInstance.settings);
+      this.serviceContainer.setOriginalSettingsDocument(this.wingifyClientInstance.originalSettings);
       this.serviceContainer.injectServiceContainer(this.serviceContainer);
       this.serviceContainer
         .getLogManager()

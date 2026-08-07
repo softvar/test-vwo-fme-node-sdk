@@ -24,6 +24,7 @@ import { isString } from '../utils/DataTypeUtil';
 import { NetworkManager } from '../packages/network-layer/manager/NetworkManager';
 import { LogManager } from '../packages/logger';
 import { Storage } from '../packages/storage';
+import { InternalEventsThrottleService } from './InternalEventsThrottleService';
 
 /**
  * ServiceContainer is a class that contains all the services that are used in the SDK.
@@ -40,6 +41,8 @@ export class ServiceContainer {
   private Storage: Storage;
   private shouldWaitForTrackingCalls: boolean;
   private pollingStopCallback: (() => void) | null = null;
+  private internalEventsThrottleService: InternalEventsThrottleService | null = null;
+  private originalSettingsDocument: Record<string, any> = {};
 
   constructor(options: IWingifyOptions) {
     this.vwoOptions = options;
@@ -239,5 +242,33 @@ export class ServiceContainer {
       this.pollingStopCallback();
       this.pollingStopCallback = null;
     }
+  }
+
+  /**
+   * Returns the internal-events throttle service for the current SDK instance.
+   * @returns The lazily initialized internal-events throttle service.
+   */
+  public getInternalEventsThrottleService(): InternalEventsThrottleService {
+    if (!this.internalEventsThrottleService) {
+      this.internalEventsThrottleService = new InternalEventsThrottleService(this);
+    }
+
+    return this.internalEventsThrottleService;
+  }
+
+  /**
+   * Stores the raw settings document used for internal-event metadata lookups.
+   * @param settingsDocument - The unnormalized settings document from the server or init options.
+   */
+  public setOriginalSettingsDocument(settingsDocument: Record<string, any>): void {
+    this.originalSettingsDocument = settingsDocument ?? {};
+  }
+
+  /**
+   * Returns the raw settings document used for internal-event metadata lookups.
+   * @returns The stored settings document.
+   */
+  public getOriginalSettingsDocument(): Record<string, any> {
+    return this.originalSettingsDocument;
   }
 }

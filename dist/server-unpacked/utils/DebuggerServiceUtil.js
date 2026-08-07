@@ -55,6 +55,7 @@ exports.extractDecisionKeys = extractDecisionKeys;
 exports.sendDebugEventToWingify = sendDebugEventToWingify;
 var NetworkUtil_1 = require("./NetworkUtil");
 var EventEnum_1 = require("../enums/EventEnum");
+var InternalEventsRuntimeUtil_1 = require("./InternalEventsRuntimeUtil");
 /**
  * Utility functions for handling debugger service operations including
  * filtering sensitive properties and extracting decision keys.
@@ -86,27 +87,39 @@ function extractDecisionKeys(decisionObj) {
     return extractedKeys;
 }
 /**
- * Sends a debug event to Wingify.
- * @param eventProps - The properties for the event.
- * @returns A promise that resolves when the event is sent.
+ * Sends a debug event to Wingify after applying sampled-event sampling rules.
+ * @param serviceContainer - The SDK service container.
+ * @param eventProps - The properties for the debug event.
+ * @returns A promise that resolves when the event is sent or skipped.
  */
 function sendDebugEventToWingify(serviceContainer_1) {
     return __awaiter(this, arguments, void 0, function (serviceContainer, eventProps) {
-        var properties, payload;
+        var messageTemplateKey, isSampledDebugEvent, settings, properties, payload;
         if (eventProps === void 0) { eventProps = {}; }
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    messageTemplateKey = eventProps.msg_t;
+                    isSampledDebugEvent = messageTemplateKey ? (0, InternalEventsRuntimeUtil_1.isSampledDebugErrorTemplateKey)(messageTemplateKey) : false;
+                    settings = serviceContainer.getOriginalSettingsDocument();
+                    // check if the sampled debug event should be sent.
+                    // if the sampled debug event should not be sent, return.
+                    if (isSampledDebugEvent &&
+                        !serviceContainer.getInternalEventsThrottleService().shouldSendSampledDebugEvent(settings)) {
+                        return [2 /*return*/];
+                    }
                     properties = (0, NetworkUtil_1.getEventsBaseProperties)(serviceContainer.getSettingsService(), EventEnum_1.EventEnum.DEBUGGER_EVENT, null, null);
                     payload = (0, NetworkUtil_1.getDebuggerEventPayload)(serviceContainer.getSettingsService(), eventProps);
-                    if (!serviceContainer.getBatchEventsQueue()) return [3 /*break*/, 1];
-                    serviceContainer.getBatchEventsQueue().enqueue(payload);
-                    return [3 /*break*/, 3];
-                case 1: return [4 /*yield*/, (0, NetworkUtil_1.sendEvent)(serviceContainer, properties, payload, EventEnum_1.EventEnum.DEBUGGER_EVENT).catch(function () { })];
-                case 2:
+                    if (serviceContainer.getBatchEventsQueue()) {
+                        serviceContainer.getBatchEventsQueue().enqueue(payload);
+                        return [2 /*return*/];
+                    }
+                    // send the debug event to the server.
+                    return [4 /*yield*/, (0, NetworkUtil_1.sendEvent)(serviceContainer, properties, payload, EventEnum_1.EventEnum.DEBUGGER_EVENT).catch(function () { })];
+                case 1:
+                    // send the debug event to the server.
                     _a.sent();
-                    _a.label = 3;
-                case 3: return [2 /*return*/];
+                    return [2 /*return*/];
             }
         });
     });

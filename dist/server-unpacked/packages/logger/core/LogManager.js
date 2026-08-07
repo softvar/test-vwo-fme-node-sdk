@@ -48,9 +48,9 @@ var TransportManager_1 = require("./TransportManager");
 var DataTypeUtil_1 = require("../../../utils/DataTypeUtil");
 var LogLevelEnum_1 = require("../enums/LogLevelEnum");
 var LogMessageUtil_1 = require("../../../utils/LogMessageUtil");
+var log_messages_1 = require("../../../enums/log-messages");
 var DebuggerCategoryEnum_1 = require("../../../enums/DebuggerCategoryEnum");
 var DebuggerServiceUtil_1 = require("../../../utils/DebuggerServiceUtil");
-var log_messages_1 = require("../../../enums/log-messages");
 var FunctionUtil_1 = require("../../../utils/FunctionUtil");
 var constants_1 = require("../../../constants");
 /**

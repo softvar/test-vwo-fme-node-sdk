@@ -110,6 +110,18 @@ export class SettingsSchema {
       refine(object(), 'EmptyObject', (v) => Object.keys(v).length === 0),
     ]);
 
+    const runtimeSamplingSchema = object({
+      server: optional(number()),
+      client: optional(number()),
+      serverless: optional(number()),
+    });
+
+    const runtimeAlwaysApplySamplingSchema = object({
+      server: optional(boolean()),
+      client: optional(boolean()),
+      serverless: optional(boolean()),
+    });
+
     this.settingsSchema = type({
       sdkKey: optional(string()),
       version: union([number(), string()]),
@@ -121,7 +133,18 @@ export class SettingsSchema {
       groups: optional(object()),
       campaignGroups: optional(object()),
       collectionPrefix: optional(string()),
-      sdkMetaInfo: optional(object({ wasInitializedEarlier: optional(boolean()) })),
+      sampling: optional(
+        object({
+          usage: optional(runtimeSamplingSchema),
+          debug: optional(runtimeSamplingSchema),
+        }),
+      ),
+      alwaysApplySampling: optional(runtimeAlwaysApplySamplingSchema),
+      sdkMetaInfo: optional(
+        object({
+          wasInitializedEarlier: optional(boolean()),
+        }),
+      ),
       pollInterval: optional(number()),
     });
   }
