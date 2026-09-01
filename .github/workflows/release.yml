@@ -35,6 +35,15 @@ on:
         required: false
         default: false
         type: boolean
+      publish_target:
+        description: Which npm package(s) to publish
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - wingify
+          - vwo
 
 permissions:
   contents: write
@@ -82,7 +91,20 @@ jobs:
         run: node scripts/sync-release-version.js
 
       - name: Validate build (Wingify package)
+        if: inputs.publish_target == 'both' || inputs.publish_target == 'wingify'
         run: yarn build
+
+      - name: Prepare VWO package.json for validation build
+        if: inputs.publish_target == 'vwo'
+        run: cp package.vwo.json package.json
+
+      - name: Validate build (VWO package)
+        if: inputs.publish_target == 'vwo'
+        run: yarn build
+
+      - name: Restore Wingify package.json after VWO validation build
+        if: inputs.publish_target == 'vwo'
+        run: git checkout -- package.json
 
       - name: Commit version sync on source branch
         id: version_commit
@@ -139,7 +161,7 @@ jobs:
           git push origin --tags
 
       - name: Publish Wingify test package to npm
-        if: inputs.dry_run == false
+        if: inputs.dry_run == false && (inputs.publish_target == 'both' || inputs.publish_target == 'wingify')
         run: |
           echo "Publishing $(node -p "require('./package.json').name")@$(node -p "require('./package.json').version")"
           npm publish --access public
@@ -147,13 +169,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Switch to VWO package.json
+        if: inputs.publish_target == 'both' || inputs.publish_target == 'vwo'
         run: cp package.vwo.json package.json
 
       - name: Build VWO package
+        if: inputs.publish_target == 'both' || inputs.publish_target == 'vwo'
         run: yarn build
 
       - name: Publish VWO test package to npm
-        if: inputs.dry_run == false
+        if: inputs.dry_run == false && (inputs.publish_target == 'both' || inputs.publish_target == 'vwo')
         run: |
           echo "Publishing $(node -p "require('./package.json').name")@$(node -p "require('./package.json').version")"
           npm publish --access public
@@ -180,6 +204,11 @@ jobs:
           echo "Dry run complete."
           echo "Version: ${{ steps.release.outputs.version }}"
           echo "Tag: ${{ steps.release.outputs.tag }}"
-          echo "Wingify package: @softvar/test-wingify-fme-node-sdk-test"
-          echo "VWO package: @softvar/test-vwo-fme-node-sdk-test"
+          echo "Publish target: ${{ inputs.publish_target }}"
+          if [ "${{ inputs.publish_target }}" = "both" ] || [ "${{ inputs.publish_target }}" = "wingify" ]; then
+            echo "Wingify package: @softvar/test-wingify-fme-node-sdk-test"
+          fi
+          if [ "${{ inputs.publish_target }}" = "both" ] || [ "${{ inputs.publish_target }}" = "vwo" ]; then
+            echo "VWO package: @softvar/test-vwo-fme-node-sdk-test"
+          fi
           echo "Skipped: git push, npm publish, GitHub release"
