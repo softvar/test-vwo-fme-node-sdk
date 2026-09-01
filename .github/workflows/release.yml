@@ -1,0 +1,185 @@
+name: Release (Test)
+
+# Manual release workflow for the softvar test fork.
+# Publishes scoped test packages only — does not affect wingify/vwo production packages.
+#
+# Publish order:
+#   1. @softvar/test-wingify-fme-node-sdk-test  (package.json — Wingify, default)
+#   2. @softvar/test-vwo-fme-node-sdk-test      (package.vwo.json copied to package.json)
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: Branch to squash-merge into master before release
+        required: true
+        default: master
+        type: string
+      git_author_name:
+        description: Git author name for release commits and tags
+        required: true
+        default: softvar
+        type: string
+      git_author_email:
+        description: Git author email for release commits and tags
+        required: true
+        default: 41898282+github-actions[bot]@users.noreply.github.com
+        type: string
+      package_author:
+        description: npm package.json author field
+        required: true
+        default: softvar
+        type: string
+      dry_run:
+        description: Skip git push, npm publish, and GitHub release
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  HUSKY: 0
+  RELEASE_AUTHOR: ${{ inputs.package_author }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.source_branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git author
+        run: |
+          git config user.name "${{ inputs.git_author_name }}"
+          git config user.email "${{ inputs.git_author_email }}"
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Check release tag does not already exist
+        id: check_tag
+        run: node scripts/check-release-tag.js
+
+      - name: Sync version and author from CHANGELOG
+        id: sync_version
+        run: node scripts/sync-release-version.js
+
+      - name: Validate build (Wingify package)
+        run: yarn build
+
+      - name: Commit version sync on source branch
+        id: version_commit
+        run: |
+          git add package.json package.vwo.json VERSION.js
+          if git diff --staged --quiet; then
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            if [ "${{ steps.sync_version.outputs.sync_needed }}" = "false" ]; then
+              echo "Version files were already in sync with CHANGELOG — nothing to commit"
+            else
+              echo "No version or author changes to commit"
+            fi
+          else
+            git commit -m "chore(release): sync version and author from CHANGELOG"
+            echo "committed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push source branch version sync
+        if: steps.version_commit.outputs.committed == 'true' && inputs.dry_run == false
+        run: git push origin HEAD:${{ inputs.source_branch }}
+
+      - name: Squash merge into master
+        if: inputs.source_branch != 'master'
+        run: |
+          git fetch origin master
+          git checkout master
+          git pull origin master
+          git merge --squash origin/${{ inputs.source_branch }}
+          VERSION=$(node -p "require('./package.json').version")
+          git commit -m "chore(release): squash merge ${{ inputs.source_branch }} for v${VERSION}"
+
+      - name: Use master when source branch is master
+        if: inputs.source_branch == 'master'
+        run: |
+          git checkout master
+          git pull origin master
+
+      - name: Resolve release version
+        id: release
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Release version: ${VERSION}"
+
+      - name: Create release tag
+        run: |
+          git tag -a "${{ steps.release.outputs.tag }}" -m "Release ${{ steps.release.outputs.tag }}"
+
+      - name: Push master and tags
+        if: inputs.dry_run == false
+        run: |
+          git push origin master
+          git push origin --tags
+
+      - name: Publish Wingify test package to npm
+        if: inputs.dry_run == false
+        run: |
+          echo "Publishing $(node -p "require('./package.json').name")@$(node -p "require('./package.json').version")"
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Switch to VWO package.json
+        run: cp package.vwo.json package.json
+
+      - name: Build VWO package
+        run: yarn build
+
+      - name: Publish VWO test package to npm
+        if: inputs.dry_run == false
+        run: |
+          echo "Publishing $(node -p "require('./package.json').name")@$(node -p "require('./package.json').version")"
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Extract changelog entry
+        run: node scripts/extract-changelog-entry.js release-notes.md ${{ steps.release.outputs.version }}
+
+      - name: Create GitHub Release
+        if: inputs.dry_run == false
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: Release ${{ steps.release.outputs.tag }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: true
+          generate_release_notes: false
+
+      - name: Dry run summary
+        if: inputs.dry_run == true
+        run: |
+          echo "Dry run complete."
+          echo "Version: ${{ steps.release.outputs.version }}"
+          echo "Tag: ${{ steps.release.outputs.tag }}"
+          echo "Wingify package: @softvar/test-wingify-fme-node-sdk-test"
+          echo "VWO package: @softvar/test-vwo-fme-node-sdk-test"
+          echo "Skipped: git push, npm publish, GitHub release"

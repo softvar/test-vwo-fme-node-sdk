@@ -1,7 +1,10 @@
 {
-  "name": "wingify-fme-node-sdk",
+  "name": "@softvar/test-wingify-fme-node-sdk-test",
   "version": "1.62.0",
-  "description": "Wingify Node/JavaScript SDK for Feature Management and Experimentation",
+  "description": "[TEST] Wingify Node/JavaScript SDK for Feature Management and Experimentation",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/server/wingify-fme-node-sdk.min.js",
   "browser": "dist/client/wingify-fme-javascript-sdk.min.js",
   "module": "dist/esm/index.wingify.js",
@@ -67,9 +70,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/wingify/vwo-fme-node-sdk"
+    "url": "https://github.com/softvar/test-vwo-fme-node-sdk"
   },
-  "author": "VWO developers",
+  "author": "softvar",
   "license": "Apache-2.0",
   "files": [
     "dist/",
