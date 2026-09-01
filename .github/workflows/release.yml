@@ -6,6 +6,9 @@ name: Release (Test)
 # Publish order:
 #   1. @softvar/test-wingify-fme-node-sdk-test  (package.json — Wingify, default)
 #   2. @softvar/test-vwo-fme-node-sdk-test      (package.vwo.json copied to package.json)
+#
+# Partial releases are supported: a git tag may exist while only one package is on npm.
+# npm registry is checked per package; already-published packages are skipped.
 
 on:
   workflow_dispatch:
@@ -55,6 +58,8 @@ concurrency:
 env:
   HUSKY: 0
   RELEASE_AUTHOR: ${{ inputs.package_author }}
+  PUBLISH_TARGET: ${{ inputs.publish_target }}
+  DRY_RUN: ${{ inputs.dry_run }}
 
 jobs:
   release:
@@ -82,28 +87,28 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Check release tag does not already exist
-        id: check_tag
-        run: node scripts/check-release-tag.js
+      - name: Check release readiness
+        id: check_release
+        run: node scripts/check-release-readiness.js
 
       - name: Sync version and author from CHANGELOG
         id: sync_version
         run: node scripts/sync-release-version.js
 
       - name: Validate build (Wingify package)
-        if: inputs.publish_target == 'both' || inputs.publish_target == 'wingify'
+        if: steps.check_release.outputs.publish_wingify == 'true'
         run: yarn build
 
       - name: Prepare VWO package.json for validation build
-        if: inputs.publish_target == 'vwo'
+        if: steps.check_release.outputs.publish_vwo == 'true' && steps.check_release.outputs.publish_wingify != 'true'
         run: cp package.vwo.json package.json
 
       - name: Validate build (VWO package)
-        if: inputs.publish_target == 'vwo'
+        if: steps.check_release.outputs.publish_vwo == 'true' && steps.check_release.outputs.publish_wingify != 'true'
         run: yarn build
 
       - name: Restore Wingify package.json after VWO validation build
-        if: inputs.publish_target == 'vwo'
+        if: steps.check_release.outputs.publish_vwo == 'true' && steps.check_release.outputs.publish_wingify != 'true'
         run: git checkout -- package.json
 
       - name: Commit version sync on source branch
@@ -145,14 +150,19 @@ jobs:
       - name: Resolve release version
         id: release
         run: |
-          VERSION=$(node -p "require('./package.json').version")
+          VERSION="${{ steps.check_release.outputs.release_version }}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ steps.check_release.outputs.tag_name }}" >> "$GITHUB_OUTPUT"
           echo "Release version: ${VERSION}"
 
       - name: Create release tag
+        if: steps.check_release.outputs.tag_exists != 'true'
         run: |
           git tag -a "${{ steps.release.outputs.tag }}" -m "Release ${{ steps.release.outputs.tag }}"
+
+      - name: Log existing release tag
+        if: steps.check_release.outputs.tag_exists == 'true'
+        run: echo "Tag ${{ steps.release.outputs.tag }} already exists — continuing partial release"
 
       - name: Push master and tags
         if: inputs.dry_run == false
@@ -161,7 +171,7 @@ jobs:
           git push origin --tags
 
       - name: Publish Wingify test package to npm
-        if: inputs.dry_run == false && (inputs.publish_target == 'both' || inputs.publish_target == 'wingify')
+        if: inputs.dry_run == false && steps.check_release.outputs.publish_wingify == 'true'
         run: |
           echo "Publishing $(node -p "require('./package.json').name")@$(node -p "require('./package.json').version")"
           npm publish --access public
@@ -169,15 +179,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Switch to VWO package.json
-        if: inputs.publish_target == 'both' || inputs.publish_target == 'vwo'
+        if: steps.check_release.outputs.publish_vwo == 'true'
         run: cp package.vwo.json package.json
 
       - name: Build VWO package
-        if: inputs.publish_target == 'both' || inputs.publish_target == 'vwo'
+        if: steps.check_release.outputs.publish_vwo == 'true'
         run: yarn build
 
       - name: Publish VWO test package to npm
-        if: inputs.dry_run == false && (inputs.publish_target == 'both' || inputs.publish_target == 'vwo')
+        if: inputs.dry_run == false && steps.check_release.outputs.publish_vwo == 'true'
         run: |
           echo "Publishing $(node -p "require('./package.json').name")@$(node -p "require('./package.json').version")"
           npm publish --access public
@@ -189,26 +199,27 @@ jobs:
 
       - name: Create GitHub Release
         if: inputs.dry_run == false
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release.outputs.tag }}
-          name: Release ${{ steps.release.outputs.tag }}
-          body_path: release-notes.md
-          draft: false
-          prerelease: true
-          generate_release_notes: false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ steps.release.outputs.tag }}" >/dev/null 2>&1; then
+            echo "GitHub release ${{ steps.release.outputs.tag }} already exists — skipping create"
+          else
+            gh release create "${{ steps.release.outputs.tag }}" \
+              --title "Release ${{ steps.release.outputs.tag }}" \
+              --notes-file release-notes.md \
+              --prerelease
+          fi
 
       - name: Dry run summary
         if: inputs.dry_run == true
         run: |
           echo "Dry run complete."
           echo "Version: ${{ steps.release.outputs.version }}"
-          echo "Tag: ${{ steps.release.outputs.tag }}"
+          echo "Tag: ${{ steps.release.outputs.tag }} (exists: ${{ steps.check_release.outputs.tag_exists }})"
           echo "Publish target: ${{ inputs.publish_target }}"
-          if [ "${{ inputs.publish_target }}" = "both" ] || [ "${{ inputs.publish_target }}" = "wingify" ]; then
-            echo "Wingify package: @softvar/test-wingify-fme-node-sdk-test"
-          fi
-          if [ "${{ inputs.publish_target }}" = "both" ] || [ "${{ inputs.publish_target }}" = "vwo" ]; then
-            echo "VWO package: @softvar/test-vwo-fme-node-sdk-test"
-          fi
+          echo "Wingify on npm: ${{ steps.check_release.outputs.wingify_published }}"
+          echo "VWO on npm: ${{ steps.check_release.outputs.vwo_published }}"
+          echo "Would publish Wingify: ${{ steps.check_release.outputs.publish_wingify }}"
+          echo "Would publish VWO: ${{ steps.check_release.outputs.publish_vwo }}"
           echo "Skipped: git push, npm publish, GitHub release"
